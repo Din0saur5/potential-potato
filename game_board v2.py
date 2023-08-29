@@ -3,68 +3,75 @@ import random
 import graphics_module
 import sys
 import time
+import pathfinder_module
+
 # Set colors (you can customize these)
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 GRAY = (150, 150, 150)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
+GREEN1 =(25, 71, 14)
+BROWN = (54, 27, 1)
+
 
 class PygameStream:
-    def __init__(self, max_lines=2):
+    def __init__(self, max_lines=5):
         self.max_lines = max_lines
         self.lines = []
 
     def write(self, text):
-        self.lines.append(str(text))
+        
         if len(self.lines) > self.max_lines:
-            self.lines.pop(0)
+            self.lines.clear()  # Remove the oldest line
+        self.lines.append(text.strip())
 
     def flush(self):
         pass
 
-    def get_last_line(self):
-        if self.lines:
-            return self.lines
-        return ""
+    def get_lines(self):
+        return self.lines
+        
 
 # Initialize Pygame
 pygame.init()
-print("Welcome to the game! what is your character name?")
+print("Welcome to the game! \nwhat is your character name?")
 characterName = input ()  # Print a welcome message at the beginning
 # Set the dimensions of the screen (adjust as needed)
-screen_width = 650
-screen_height = 800
+screen_width = 1120
+screen_height = 775
 cell_size = 50
-grid_size = 13
+grid_size = 14
 
 
 # Create the screen
 screen = pygame.display.set_mode((screen_width, screen_height))
+clock = pygame.time.Clock()
+target_frame_rate = 60
 
+buffer1 = pygame.Surface((screen_width, screen_height))
+buffer2 = pygame.Surface((screen_width, screen_height))
+current_buffer = buffer1
 
+terminal_barO = pygame.image.load(r"C:\Users\danha\OneDrive\Desktop\programming\rpggame\potential-potato\placeholder graphics\terminal_box.png")
+terminal_font = pygame.font.Font(r"C:\Users\danha\OneDrive\Desktop\programming\rpggame\potential-potato\placeholder graphics\PR Viking.ttf", 18)
+terminal_font_outer = pygame.font.Font(r"C:\Users\danha\OneDrive\Desktop\programming\rpggame\potential-potato\placeholder graphics\PR Viking.ttf", 18)
 
-
-# Define the game board as a 2D array
-game_board = [[None for _ in range(grid_size+1)] for _ in range(grid_size+1)]
-terminal_font = pygame.font.Font(r"C:\Users\danha\OneDrive\Desktop\programming\rpggame\potential-potato\placeholder graphics\PR Viking.ttf", 14)
-fpimage = pygame.image.load(r"C:\Users\danha\OneDrive\Desktop\programming\rpggame\potential-potato\placeholder graphics\character_forward.png")
-bpimage = pygame.image.load(r"C:\Users\danha\OneDrive\Desktop\programming\rpggame\potential-potato\placeholder graphics\character_back.png")
-rpimage = pygame.image.load(r"C:\Users\danha\OneDrive\Desktop\programming\rpggame\potential-potato\placeholder graphics\character_right.png")
-lpimage = pygame.image.load(r"C:\Users\danha\OneDrive\Desktop\programming\rpggame\potential-potato\placeholder graphics\character_left.png")
-player_graphic =[fpimage,bpimage,rpimage,lpimage]
+# list of all the things so the game mixer can make a random game
+all_the_things = []
 
 #abilities dictionary
 
 abilities = []
 class Ability:
-    def __init__(self, name, reach, type, damage, graphic, splash):
+    def __init__(self, name, reach, type, damage, graphic, splash,frames):
         self.name = name
         self.reach = reach
         self.damage = damage
         self.type = type
         self.graphic = graphic
         self.splash = splash
+        self.frames =frames
     
 def ability_effect(ability, user, target):
         if ability.name == "sword" or \
@@ -80,61 +87,66 @@ def ability_effect(ability, user, target):
                     row = random.randint(0, grid_size - 2)
                     col = random.randint(0, grid_size - 1)
                     if open_cell(row,col):
-                        game_board[user.row][user.col] = None
-                        game_board[row][col] = user
+                        game_board[user.row][user.col].fill = None
+                        game_board[row][col].fill = user
                         break
                     else:
                         i +=1
-                        print("something when wrong let me try again")
+                        print("\nsomething when wrong \nlet me try again")
         elif ability.name == "drain":
                 calculate_attack_damage(ability,user,target)
                 user.current_hp +=7
         elif ability.name == "fear":
                 target.status == "scared"
         else:
-                 print("not an ability")    
+                 print("\nnot an ability")    
              
 
-sword = Ability("sword",1,"plain",10,"graphic",False)
+sword = Ability("sword",1,"plain",10,"graphic",False, 2)
 abilities.append(sword)  
-bite = Ability("bite",1,"plain",10,"graphic",False)
+bite = Ability("bite",1,"plain",10,"graphic",False, 1)
 abilities.append(bite)     
-teleport = Ability("teleport",0,0,"none","graphic",False)
+teleport = Ability("teleport",0,0,"none","graphic",False,1)
 abilities.append(teleport)         
-bow = Ability("bow",grid_size,"plain",7,"graphic",False)
+bow = Ability("bow",grid_size,"plain",7,"graphic",False,13)
 abilities.append(bow)
-fireball = Ability("fireball",grid_size,"fire",7,"graphic",False)
+fireball = Ability("fireball",grid_size,"fire",7,"graphic",False,13)
 abilities.append(fireball)
-piercing_shot = Ability("piercing shot", grid_size, "plain", 12, "graphic",True)
+piercing_shot = Ability("piercing shot", grid_size, "plain", 12, "graphic",True,13)
 abilities.append(piercing_shot)
-lightning_bolt = Ability("lightning bolt", grid_size, "lightning", 12, "graphic",True)
+lightning_bolt = Ability("lightning bolt", grid_size, "lightning", 12, "graphic",True,13)
 abilities.append(lightning_bolt)
-drain = Ability("drain", 4,"necrotic",12,"graphic",False)
+drain = Ability("drain", 4,"necrotic",12,"graphic",False,2)
 abilities.append(drain)
-fear = Ability("fear", 2, "pychic", 0, "graphic", False)
+fear = Ability("fear", 2, "pychic", 0, "graphic", False, 1)
 abilities.append(fear)
 #enemy dictionary
+ 
 wolf_dict = {
     "name": "wolf",
     "level": 1,
+    "graphic": graphics_module.graphic_dictionary("wolf"),
     "found": "forest",
     "resistance": "none",
     "weakness": "none",
-    "max_hp": 50,
-    "attack_points": 15,
+    "max_hp": 30,
+    "attack_points": 1,
     "armor_rating": 5,
     "attack_skill_modifier": 2,
-    "total_actions": 4,
+    "total_actions": 10,
+    "actions_left": 10,
     "abilities": ["movement", "bite"]
+    
+
     
 }
 
-
 enemies = []
 class Enemy:
-    def __init__(self, name, level, found, resistance, weakness, max_hp, attack_points, armor_rating, attack_skill_modifier, total_actions, abilities):
+    def __init__(self, name, level, graphic, found, resistance, weakness, max_hp, attack_points, armor_rating, attack_skill_modifier, total_actions, actions_left, abilities):
         self.name = name
         self.level = level
+        self.graphic = graphic
         self.found = [found]
         self.resistance = resistance
         self.weakness = weakness
@@ -143,187 +155,160 @@ class Enemy:
         self.attack_points = attack_points
         self.armor_rating = armor_rating
         self.attack_skill_modifier = attack_skill_modifier
-        self.abilities = abilities
         self.status = "none"
-        self.disabled = None
+        self.disabled = []
         self.position = "back"
-        self.row = random.randint(0, grid_size - 2)
-        self.col = random.randint(0, grid_size - 1)
+        self.row = random.randint(0, grid_size - 3)
+        self.col = random.randint(0, grid_size - 2)
         self.total_actions = total_actions
-        self.actions_left = total_actions
+        self.actions_left = actions_left
+        self.abilities = abilities
+    
+
+
 
 
 # Create instances of Enemy class for different enemies
 wolf = Enemy(**wolf_dict)
-vampire = Enemy("Vampire", 2,"dungeon","necrotic",["radiant","fire"], 70, 20, 17, 3, 4, ["movement", "drain"])
-ghost = Enemy("Ghost", 3, ["graveyard","dungeon"],["necrotic","psychic"], ["radiant","fire"], 30, 10, 13, 1, 6, ["movement", "fear"])
+#vampire = Enemy("Vampire", 2,"dungeon","necrotic",["radiant","fire"], 70, 20, 17, 3, 4, ["movement", "drain"])
+#ghost = Enemy("Ghost", 3, ["graveyard","dungeon"],["necrotic","psychic"], ["radiant","fire"], 30, 10, 13, 1, 6, ["movement", "fear"])
 #create randomizer spawn  
 for _ in range(3):
     enemy_instance = Enemy(**wolf_dict)
     enemies.append(enemy_instance)
 
+#obstacle creation
 
+obstacles = []
+class Obstacle:
+    def __init__(self,name,found):
+        self.name = name
+        self.found = found
+        self.graphic = graphics_module.graphic_dictionary(self.name)
+forest_obstacle = {
+     "name":"forest" ,
+      "found": "forest"
+        }
+
+obnum = random.randint(30,45) # can add differ
+for _ in range(obnum):
+    # here is the game mixer randomizer from location chooses a random choice obstacle and returns it as a string might work
+    obstacle_instance = Obstacle(**forest_obstacle) 
+    obstacles.append(obstacle_instance)
+
+def spawner(obstacles):
+   for obstacle in obstacles:
+        free_cells = []
+        for row in range(grid_size-3):
+            for col in range(grid_size-1):
+                if game_board[row][col].fill is None and game_board[row][col].location !=(0,0):
+                    free_cells.append(game_board[row][col].location)
+        obobj = random.choice(free_cells)
+        obrow = obobj[0]
+        obcol = obobj[1]
+        game_board[obrow][obcol].fill = obstacle
+        free_cells.clear()
+        continue
 # Player and enemy attributes
 class Player:
     def __init__(self,characterName):
 
         self.name =characterName
+        self.type = "player"
         self.level = 1
-        self.max_hp = 100
-        self.current_hp = 100
+        self.max_hp = 300
+        self.current_hp = 300
         self.attack_points = 20
         self.armor_rating = 17
         self.attack_skill_modifier = 3
-        self.abilities = ["movement","sword"]
+        self.abilities = ["movement","sword","locked","locked","locked","locked","locked","locked","locked","locked","locked"]
+        self.resistance = "none"
+        self.weakness = "none"
         self.status = "none"
-        self.disabled = ["none"]
-        self.total_actions = 5
-        self.actions_left = 5
+        self.disabled = []
+        self.total_actions = 6
+        self.actions_left = 6
         self.position = "forward"
-        self.graphic = player_graphic
-        self.row = grid_size - 1
-        self.col = grid_size // 2
+        self.graphic = graphics_module.graphic_dictionary("player")
+        self.row = grid_size - 2
+        self.col = (grid_size -2) // 2
 player = Player(characterName)
 
+class Cell:
+    def __init__(self, row, col):
+        self.location = (row, col)
+        self.row = row
+        self.col = col
+        self.fill = None  # You can set this to an entity object if the cell is occupied
+        self.parent = None
+        self.h_score()
+
+    def h_score(self):
+        row_score = abs(player.row - self.row)
+        col_score = abs(player.col - self.col)
+        h_score = abs(row_score + col_score)
+        return h_score
+
+# Define the game board as a 2D array
+# Define the game board as a grid of Cell objects
+game_board = [[Cell(row, col) for col in range(grid_size)] for row in range(grid_size)]
 
 
+#pygame_stream = PygameStream()
+#sys.stdout =  pygame_stream
 
-pygame_stream = PygameStream()
-sys.stdout =  pygame_stream
-
-# Function to draw the game board
-def draw_board(player):
+def buffer_screen(cbuffer, player):
     
-    for row in range(0,grid_size):
-        for col in range(0,grid_size):
-            if (row + col) % 2 == 0:
-                color = WHITE
-            else:
-                color = GRAY
-            pygame.draw.rect(screen, color, (col * cell_size, row * cell_size, cell_size, cell_size))
-    level = str(player.level) 
-    current_hp = str(player.current_hp) 
-    max_hp = str(player.max_hp) 
-    attack_points = str(player.attack_points) 
-    armor_rating = str(player.armor_rating) 
-    attack_skill_modifier = str(player.attack_skill_modifier)
-    graphics_module.draw_player_info(
-    screen, 
-    player.name, 
-    level, 
-    current_hp, 
-    max_hp, 
-    attack_points, 
-    armor_rating, 
-    attack_skill_modifier, 
-    player.status
-    )
-  
     
-
-
-
-
-
-
-
-# Function to draw units on the board
-def draw_units():
-
-    
-    for row in range(grid_size):
-        for col in range(grid_size):
-            unit = game_board[row][col]
-            image_size = (cell_size,cell_size)
-            image_reset = (0,0)
-            if unit is player:   #front back right left
-                location = (col*50,row*50)
-                if player.position == "back":
-                    fpimageS = pygame.transform.scale(player_graphic[0],image_reset)
-                    rpimageS = pygame.transform.scale(player_graphic[2],image_reset)
-                    lpimageS = pygame.transform.scale(player_graphic[3],image_reset)
-                    bpimageS = pygame.transform.scale(player_graphic[1],image_size)
-                    screen.blit(bpimageS, location) 
-                    pygame.display.flip()
-                elif player.position == "forward":
-                    bpimageS = pygame.transform.scale(bpimage,image_reset)
-                    rpimageS = pygame.transform.scale(rpimage,image_reset)
-                    lpimageS = pygame.transform.scale(lpimage,image_reset)
-                    fpimageS = pygame.transform.scale(fpimage,image_size)
-                    screen.blit(fpimageS, location)
-                    pygame.display.flip()
-                elif player.position == "left":
-                    fpimageS = pygame.transform.scale(fpimage,image_reset)
-                    rpimageS = pygame.transform.scale(rpimage,image_reset)
-                    bpimageS = pygame.transform.scale(bpimage,image_reset)
-                    lpimageS = pygame.transform.scale(lpimage,image_size)
-                    screen.blit(lpimageS, location)
-                    pygame.display.flip()
-                elif player.position == "right":
-                    # Draw triangle for player
-                    fpimageS = pygame.transform.scale(fpimage,image_reset)
-                    bpimageS = pygame.transform.scale(bpimage,image_reset)
-                    lpimageS = pygame.transform.scale(lpimage,image_reset)
-                    rpimageS = pygame.transform.scale(rpimage,image_size)
-                    screen.blit(rpimageS, location)
-                    pygame.display.flip()
-            elif unit in enemies:
-                if unit.position == "forward":
-                        triangle_vertices = [
-                            (col * cell_size + cell_size // 2, row * cell_size),           # Top vertex
-                            (col * cell_size, row * cell_size + cell_size),                 # Bottom-left vertex
-                            (col * cell_size + cell_size, row * cell_size + cell_size),     # Bottom-right vertex
-                            ]
-                        pygame.draw.polygon(screen, RED, triangle_vertices)
-                        pygame.display.flip()
-                elif unit.position == "back":
-                    
-                        triangle_vertices = [
-                            (col * cell_size + cell_size // 2, row * cell_size),           # Top vertex
-                            (col * cell_size, row * cell_size + cell_size),                 # Bottom-left vertex
-                            (col * cell_size + cell_size, row * cell_size + cell_size),     # Bottom-right vertex
-                            ]
-                        pygame.draw.polygon(screen, RED, triangle_vertices)
-                        pygame.display.flip()
-                elif unit.position == "left":
-                        triangle_vertices = [
-                            (col * cell_size + cell_size // 2, row * cell_size),           # Top vertex
-                            (col * cell_size, row * cell_size + cell_size),                 # Bottom-left vertex
-                            (col * cell_size + cell_size, row * cell_size + cell_size),     # Bottom-right vertex
-                            ]
-                        pygame.draw.polygon(screen, RED, triangle_vertices)
-                        pygame.display.flip()
-                elif unit.position == "right":
-                    # Draw triangle for player
-                        triangle_vertices = [
-                            (col * cell_size + cell_size // 2, row * cell_size),           # Top vertex
-                            (col * cell_size, row * cell_size + cell_size),                 # Bottom-left vertex
-                            (col * cell_size + cell_size, row * cell_size + cell_size),     # Bottom-right vertex
-                            ]
-                        pygame.draw.polygon(screen, RED, triangle_vertices)
-                        pygame.display.flip()
-    
-    terminal_text = terminal_font.render(str(pygame_stream.get_last_line()), True, WHITE)
-    clear_term_loc = (0,650,400,25)
-    clear_term = pygame.draw.rect(screen,BLACK,clear_term_loc)
-    pygame.display.update(clear_term)
-    screen.blit(terminal_text, (10, 650))
+    cbuffer.fill(BROWN)
+    graphics_module.draw_board(cbuffer,player, "forest")
+    graphics_module.draw_units(cbuffer, player, enemies, obstacles,game_board)
+    """
+    terminal_textstr = pygame_stream.get_lines()
+    for termtxt in terminal_textstr:
+        terminal_texto = terminal_font_outer.render(f"\n {termtxt}", True, BLACK)
+        terminal_text = terminal_font.render(f"\n {termtxt}", True, GRAY)
+        cbuffer.blit(terminal_texto, (798, 627 +10*terminal_textstr.index(termtxt)))
+        cbuffer.blit(terminal_text, (800, 625 +10*terminal_textstr.index(termtxt)))
+        pygame.display.flip()
+   """
     pygame.display.flip()
 
 
+    if cbuffer == buffer1:
+            cbuffer = buffer2
+            screen.blit(buffer1, (0, 0))
+    else:
+            cbuffer = buffer1
+            screen.blit(buffer2, (0, 0))
+
+    pygame.display.flip()
+    clock.tick(target_frame_rate)
+
+# Function to draw the game board added to graphic mod
+
+    
+
+            
+    
+
+
 def handle_events():
-    if player.status != "none":
-        print(player.status)
-       
-    for player.actions_left in range(player.total_actions):
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                handle_key_event(event.key)
-                pygame.display.flip()
+    check_status(player)
+    if player.status != "dead":
+            for event in pygame.event.get(): 
+                if event.type == pygame.KEYDOWN and player.actions_left > 0:
+                    handle_key_event(event.key)
+                if player.actions_left <= 0:
+                    return             
         
     
+            
+    
 def handle_key_event(key):
-        
+    if player.actions_left <= 0:
+        print ("\nno move left this turn")
+        return    
     if key == pygame.K_UP:
             move_direction(player, "forward")
     elif key == pygame.K_LEFT:
@@ -334,65 +319,68 @@ def handle_key_event(key):
             move_direction(player, "right")
     elif key == pygame.K_w:
             player.position = "forward"
-            draw_board(player)
-            draw_units()
-            pygame.display.flip()
+            buffer_screen(current_buffer, player)         
     elif key == pygame.K_a:
             player.position = "left"
-            draw_board(player)
-            draw_units()
-            pygame.display.flip()
+            buffer_screen(current_buffer, player)
+            
     elif key == pygame.K_s:
             player.position = "back"
-            draw_board(player)
-            draw_units()
-            pygame.display.flip()
+            buffer_screen(current_buffer, player)
+            
     elif key == pygame.K_d:
             player.position = "right"
-            draw_board(player)
-            draw_units()
-            pygame.display.flip()
+            buffer_screen(current_buffer, player)
+            
     elif key == pygame.K_1:
-            use_ability(player, player.abilities[1])
+            use_ability(current_buffer, player, player.abilities[1])
     elif key == pygame.K_2:
-            use_ability(player, player.abilities[2])
+            use_ability( current_buffer, player, player.abilities[2])
     elif key == pygame.K_3:
-            use_ability(player, player.abilities[3])
+            use_ability( current_buffer, player, player.abilities[3])
     elif key == pygame.K_4:
-            use_ability(player, player.abilities[4])    
+            use_ability( current_buffer, player, player.abilities[4])    
     elif key == pygame.K_5:
-            use_ability(player, player.abilities[5])
+            use_ability( current_buffer, player, player.abilities[5])
     elif key == pygame.K_6:
-            use_ability(player, player.abilities[6])
+            use_ability( current_buffer, player, player.abilities[6])
     elif key == pygame.K_7:
-            use_ability(player, player.abilities[7])
+            use_ability( current_buffer, player, player.abilities[7])
     elif key == pygame.K_8:
-            use_ability(player, player.abilities[8])
+            use_ability( current_buffer, player, player.abilities[8])
     elif key == pygame.K_9:
-            use_ability(player, player.abilities[9])                        
+            use_ability( current_buffer, player, player.abilities[9])                        
     elif key == pygame.K_q:
             print(player.abilities)
     elif key == pygame.K_ESCAPE:
             pygame.quit()
             quit()
-    draw_board(player)
-    draw_units()
-    pygame.display.flip()
+    
+    
+    
+    
 
 def check_status(entity):
     if entity.status == "none":
         return
-    if entity.status == "scared":
-        rangeA = range(1, len(entity.abilities)) 
-        for indexA in rangeA:
-            ability_name = entity.abilities[indexA]
-            entity.disabled.append(ability_name)
-
+    if entity.status == "dead":
+         game_board[entity.row][entity.col].fill = None
+         entity.total_actions == 0
+         entity.actions_left == 0
+         if entity == player:
+            print("\ndead")
+            pygame.quit()
+              
+    elif entity.status == "scared":
+        entity.disabled = entity.abilities[1:]
+        
+    else:
+         return
     
 #movement function
 def open_cell(row,col): 
       # Check if the destination cell is empty (not occupied by an enemy or object)
-     if game_board[row][col] is None and row in range(grid_size) and col in range(grid_size): 
+     if game_board[row][col].fill == None and row in range(grid_size-1) and col in range(grid_size-1): 
           return True
      else:
           return False
@@ -404,128 +392,170 @@ def move_direction(entity, direction):
         if direction == "forward":
             if open_cell(row - 1, col):
                 
-                game_board[row][col] = None
+                game_board[row][col].fill = None
                 entity.row -= 1
-                game_board[entity.row][entity.col] = entity
+                game_board[entity.row][entity.col].fill = entity
                 entity.actions_left -= 1 
                         
             else:
-                print("Cannot move there.")    
+                print("\nCannot move there.")    
         elif direction == "left":
             if open_cell(row, col- 1):
                 
-                game_board[row][col] = None
+                game_board[row][col].fill = None
                 entity.col -= 1
-                game_board[entity.row][entity.col] = entity
+                game_board[entity.row][entity.col].fill = entity
                 entity.actions_left -= 1
                            
             else:
-                print("Cannot move there.")
+                print("\nCannot move there.")
             
         elif direction == "back":
             if open_cell(row + 1, col):
-                game_board[row][col] = None
+                game_board[row][col].fill = None
                 entity.row += 1
-                game_board[entity.row][entity.col] = entity
+                game_board[entity.row][entity.col].fill = entity
                 entity.actions_left -= 1
                 
             else:
-                print("Cannot move there.")
+                print("\nCannot move there.")
             
         elif direction == "right":
             if open_cell(row, col+1):
-                game_board[row][col] = None
+                game_board[row][col].fill = None
                 entity.col += 1
-                game_board[entity.row][entity.col] = entity
+                game_board[entity.row][entity.col].fill = entity
                 entity.actions_left -= 1
                 
                          
             else:
-                print("Cannot move there.")
-        draw_board(player)
-        draw_units()
-        pygame.display.flip()
+                print("\nCannot move there.")     
     else:
-         print(entity.name + " can't move")   
-
+         print("\n" + entity.name + " can't move")   
+    buffer_screen(current_buffer, player)
+    return
 
 def in_range(attacker, ability): 
     enemies_in_range = []
-    
-    if attacker.position == "back":
-        for row in range(attacker.row, attacker.row + ability.reach +1):
-            target = game_board[row][attacker.col]
-            if target is None:
-                 continue
-            elif target in enemies:
-                 enemies_in_range.append(target)
+    if attacker is player:
+        if attacker.position == "back":
+            for row in range(attacker.row, attacker.row + ability.reach +1):
+                target = game_board[row][attacker.col].fill
+                if target is None:
+                     continue
+                elif target in enemies:
+                     enemies_in_range.append(target)
                 
-            else:
+                else:
+                    continue
+        elif attacker.position == "forward":
+            for row in range(attacker.row - ability.reach, attacker.row):
+                target = game_board[row][attacker.col].fill
+                if target is None:
                  continue
-    elif attacker.position == "forward":
-        for row in range(attacker.row - ability.reach, attacker.row):
-            target = game_board[row][attacker.col]
-            if target is None:
-                 continue
-            elif target in enemies:
-                 enemies_in_range.append(target)   
-            else:
-                 continue
+                elif target in enemies:
+                     enemies_in_range.append(target)   
+                else:
+                     continue
                     
-    elif attacker.position == "right":
-        for col in range(attacker.col, attacker.col + ability.reach +1):
-            target = game_board[attacker.row][col]
-            if target is None:
-                 continue
-            elif target in enemies:
-                 enemies_in_range.append(target)     
-            else:
-                continue
-    elif attacker.position == "left":
-        for col in range(attacker.col - ability.reach, attacker.col):
-            target = game_board[attacker.row][col]
-            if target is None:
-                 continue
-            elif target in enemies:
-                 enemies_in_range.append(target)
-            else:
-                 continue       
+        elif attacker.position == "right":
+            for col in range(attacker.col, attacker.col + ability.reach +1):
+                target = game_board[attacker.row][col].fill
+                if target is None:
+                    continue
+                elif target in enemies:
+                    enemies_in_range.append(target)     
+                else:
+                    continue
+        elif attacker.position == "left":
+            for col in range(attacker.col - ability.reach, attacker.col):
+                target = game_board[attacker.row][col].fill
+                if target is None:
+                    continue
+                elif target in enemies:
+                    enemies_in_range.append(target)
+                else:
+                    continue       
+    else:
+        if attacker.position == "back":
+            for row in range(attacker.row, attacker.row + ability.reach +1):
+                target = game_board[row][attacker.col].fill
+                if target is None:
+                    continue
+                elif target is player:
+                    enemies_in_range.append(target)
+                else:
+                    continue
+        elif attacker.position == "forward":
+            for row in range(attacker.row - ability.reach, attacker.row):
+                target = game_board[row][attacker.col].fill
+                if target is None:
+                    continue
+                elif target is player:
+                    enemies_in_range.append(target)   
+                else:
+                    continue
+                    
+        elif attacker.position == "right":
+            for col in range(attacker.col, attacker.col + ability.reach +1):
+                target = game_board[attacker.row][col].fill
+                if target is None:
+                    continue
+                elif target is player:
+                    enemies_in_range.append(target)     
+                else:
+                    continue
+        elif attacker.position == "left":
+            for col in range(attacker.col - ability.reach, attacker.col):
+                target = game_board[attacker.row][col].fill
+                if target is None:
+                    continue
+                elif target is player:
+                    enemies_in_range.append(target)
+                else:
+                    continue 
     if not enemies_in_range:
          return None
     else:    
         return enemies_in_range
 
-def use_ability(user, ability_name):
+def use_ability(current_buffer, user, ability_name):
     
     for ability in abilities:
         if ability.name == ability_name: 
-            
+            frame = 0
+            for frame in range(ability.frames+1):
+                graphics_module.ability_graphic(screen, ability, user, game_board, player,frame)
+                buffer_screen(current_buffer,player)
+                frame += 1
+            pygame.display.flip()
             if ability.reach > 0:
                 enemies_in_range = in_range(user, ability)
                 if not in_range(user, ability):
-                        print("No enemies in range")
+                        print("\nNo enemies in range")
                         return
                 else:
                     user.actions_left -= 1
                     if ability.splash:
                         for target in enemies_in_range:
                             if ability_success(user, target):
-                                print("Hit!")
+                                print(f"{ability_name} attack Hit!")
                                 ability_effect(ability, user, target)
                             else:
-                                print("Miss!")    
+                                print(f"{ability_name} attack Miss!")    
                     else:
                             if ability_success(user, enemies_in_range[0]):
-                                print("Hit!")
+                                print(f"{ability_name} attack Hit!")
                                 ability_effect(ability,user,enemies_in_range[0])            
                             else:
-                                print("Miss!")
+                                print(f"{ability_name} attack Miss!")
                 
-            elif ability.reach == 0:
+            elif ability.reach <= 0:
                  ability_effect(ability,user,user)
-       
-            else:
-                print("ability not unlocked")
+            graphics_module.ability_graphic(screen, ability, user, game_board, player, ability.frames+1)
+            buffer_screen(current_buffer,player)
+            
+            
       
     return 
         
@@ -544,26 +574,28 @@ def calculate_attack_damage(ability, attacker, target):
         if ability.type == target.weakness:
             damage = attacker.attack_points + (ability.damage *1.5) 
             target.current_hp -= damage
-            print(f"{attacker.name} dealt {damage} damage to {target.name}. Seemed extremely effective!")
+            print(f"{attacker.name} dealt {damage} damage to {target.name}. \n Seemed extremely effective! \n")
              
         elif ability.type == target.resistance:
             damage = attacker.attack_points + (ability.damage*0.5)
             target.current_hp -= damage
-            print(f"{attacker.name} dealt {damage} damage to {target.name}. Seemed to have very little effect!")
+            print(f"{attacker.name} dealt {damage} damage to {target.name}. \n Seemed to have very little effect! \n")
             
         else:
             damage = (attacker.attack_points) + ability.damage
             target.current_hp -= damage
-            print(f"{attacker.name} dealt {damage} damage to {target.name}.")
+            print(f"{attacker.name} dealt {damage} damage to {target.name}.\n")
                
     
         if target.current_hp <= 0:
-            print(f"{target.name} was defeated.")
-            game_board[target.row][target.col] = None
+            print(f" \n{target.name} was defeated.\n")
             target.status == "dead"
-            draw_board(player)
-            draw_units()
-            pygame.display.flip()
+            game_board[target.row][target.col].fill = None
+            if target in enemies:
+                enemies.remove(target)
+            buffer_screen(current_buffer, player)
+            
+            
              
         return
 
@@ -572,105 +604,140 @@ def print_prompt(message):
     print(f"\n>>> {message}")
  
 
-
-    # Function to handle enemy's turn
-
-#def handle_enemy_turn(enemies):
-    for enemy in enemies:
-        for enemy.actions_left in range(enemy.total_actions):
-
-            if enemy.name == "wolf" and enemy.status != "dead":
-                player_row, player_col = player.row, player.col
-                enemy_row, enemy_col = enemy.row, enemy.col
-            
-                distance = abs(player_row - enemy_row) + abs(player_col - enemy_col)
-            
-            if distance ==  1 :
-                if player_row < enemy_row:
-                    enemy.positon = "back"
-                elif player_row > enemy_row:
-                    enemy.positon = "forward"
-                if player_col < enemy_col:
-                    enemy.positon = "left"
-                elif player_col > enemy_col:
-                    enemy.positon = "right"
-                    
-                enemy.actions_left -= 1                
-                continue
+# Functions to handle enemy's turn
+#path finder
+def calculate_path(enemy): #enemy, player
+        current_cell = game_board[enemy.row][enemy.col]
+        neighborF = game_board[enemy.row-1][enemy.col] 
+        neighborB = game_board[enemy.row+1][enemy.col]
+        neighborR = game_board[enemy.row][enemy.col+1]
+        neighborL = game_board[enemy.row][enemy.col-1]
+        potential_neighbors = [neighborF,neighborB,neighborR,neighborL]  # Generate neighboring nodes here what goes in here? (maybe list the possible neighbors)
+        
+        neighbors=[]
+        blocked = []
+        paths =[]
+        path = []
+        for potential_neighbor in potential_neighbors:
+            if potential_neighbor.fill is player:
+                return potential_neighbor
+            elif open_cell(potential_neighbor.row,potential_neighbor.col) and potential_neighbor != current_cell.parent:
+                neighbors.append(potential_neighbor)
             else:
-                # Move towards the player
-                if player_row < enemy_row:
-                    if open_cell(enemy_row -1,enemy_col):
-                        enemy_row -=1
-                        enemy.actions_left -= 1
-                        game_board[enemy.row][enemy.col] = None
-                        enemy.row, enemy.col = enemy_row, enemy_col
-                        game_board[enemy.row][enemy.col] = enemy
-                        pygame.display.flip() 
-                        continue
-                elif player_row > enemy_row:
-                    if open_cell(enemy_row+1,enemy_col):
-                        enemy_row += 1
-                        enemy.actions_left -= 1
-                        game_board[enemy.row][enemy.col] = None
-                        enemy.row, enemy.col = enemy_row, enemy_col
-                        game_board[enemy.row][enemy.col] = enemy
-                        pygame.display.flip() 
-                        continue           
-                elif player_col < enemy_col:
-                    if open_cell(enemy_row,enemy_col-1):
-                        enemy_col -= 1
-                        enemy.actions_left -= 1
-                        game_board[enemy.row][enemy.col] = None
-                        enemy.row, enemy.col = enemy_row, enemy_col
-                        game_board[enemy.row][enemy.col] = enemy
-                        pygame.display.flip() 
-                        continue
-                elif player_col > enemy_col:
-                    if open_cell(enemy_row,enemy_col-1):    
-                        enemy_col += 1
-                        enemy.actions_left -= 1
-                        game_board[enemy.row][enemy.col] = None
-                        enemy.row, enemy.col = enemy_row, enemy_col
-                        game_board[enemy.row][enemy.col] = enemy
-                        pygame.display.flip() 
-                        continue
-                                       
-                else:
-                    for i in range(100): 
-                        enemy_row_oof = enemy_row + random.randomint( -1,1)
-                        enemy_col_oof = enemy_col + random.randomint( -1,1)
-                        if open_cell(enemy_row_oof ,enemy_col_oof):            
-                            enemy_row = enemy_row_oof
-                            enemy_col = enemy_row_oof
-                            enemy.actionsleft =0
-                            game_board[enemy.row][enemy.col] = None
-                            enemy.row, enemy.col = enemy_row, enemy_col
-                            game_board[enemy.row][enemy.col] = enemy
-                            pygame.display.flip()                            
-                            continue
-                        else:
-                            i+= 1
-                
+                blocked.append(potential_neighbor)
+                continue
+        print(f"neighbors {neighbors}") 
+        
+        
+        for neighbor in neighbors:
+            
+            neighbor_h_score = neighbor.h_score()
+            current_cell_h_score = current_cell.h_score()
+            if neighbor_h_score <= current_cell_h_score:
+                 paths.append(neighbor)
+            else:
+                 continue
+        if not paths:
+            for neighbor in neighbors:
+                if neighbor_h_score <= current_cell_h_score+2:
+                    print (f"flanking? {paths}")
+                    paths.append(neighbor)
+             
+        if not paths:        
+            print ("no open cells")
+            return None
+        else:
+            path = sorted(paths, key=lambda cell: int(cell.h_score()), reverse=True)
+            print(f" path {path}")         
+            next_cell = path[0]
+            next_cell.parent = current_cell
+            return next_cell
+            
 
-                    
-                    
+def determine_direction(node_row, node_col, enemy_row, enemy_col):
+     if node_row>enemy_row and node_col == enemy_col:
+          position = "back"
+     elif node_row<enemy_row and node_col == enemy_col:
+          position = "forward"
+     elif node_col>enemy_col and node_row == enemy_row:
+          position = "right"
+     elif node_col<enemy_col and node_row == enemy_row:
+          position = "left"
+     
+     return position
+def handle_enemy_turn(enemy):
+    x=0 
+    for x in range(enemy.total_actions+1):
+        path = calculate_path(enemy)
+        if path:
+            print(f"next move {path.location}")
+            path_h_score = int(path.h_score())
+            print (f"next move score {path_h_score}")
+            # Check if the enemy is within 1 node of the player
+            if path.fill == player:
+             # Attack the player using the use_ability function      
+                position = determine_direction(player.row, player.col, enemy.row, enemy.col)
+                enemy.position = position
+                print(f"attack {position}")
+                use_ability( current_buffer, enemy, enemy.abilities[1])
+                buffer_screen(current_buffer,player)
+                x +=1
+                if enemy.actions_left <=0:
+                    break
+            else:
+                direction = determine_direction(path.row,path.col,enemy.row,enemy.col)
+                enemy.position = direction
+                buffer_screen(current_buffer,player)
+                print(f"direction of movement {direction}")
+            
+                move_direction(enemy,direction)
+                buffer_screen(current_buffer,player)
+                x += 1
+                if enemy.actions_left <=0:
+                    break      
+        elif not path:
+            print("no open spaces")
+            x += 1
+        
+    for row in range(grid_size):
+         for col in range(grid_size):
+              game_board[row][col].parent is None
 
-        if enemy.actions_left == 0:
-            enemy.status = "none"
-            enemy.disabled = None
-            break
+    print(f"{enemy.name}'s turn over")
+
 
 
 def enemies_on_board():
-    pygame.display.flip()
+    buffer_screen(current_buffer,player)
+    
     for row in range(grid_size):
         for col in range(grid_size):
-            enemy = game_board[row][col]
-            if enemy in enemies:
+            
+            if game_board[row][col].fill in enemies:
                 return True
     
     return False        
+
+def spawner_issue_checker(enemies):
+    for enemy in enemies:
+        path = pathfinder_module.final_pathfinding(grid_size,game_board,game_board[enemy.row][enemy.col], game_board[player.row][player.col])
+        #path = pathfinder_module.bruteforce_pathfinding(grid_size,game_board,game_board[enemy.row][enemy.col], game_board[player.row][player.col])
+        if path != None:
+                print("path found")
+                pathfinder_module.reset_cells(grid_size, game_board)
+        elif path == None:
+             spawner_issue_checker(enemies)
+        else:
+                for row in range(grid_size-1):
+                    for col in range(grid_size-1):
+                        current_cell = game_board[row][col]
+                        current_cell.parent = None
+                        if current_cell.fill in obstacles:
+                            current_cell.fill = None
+                        else: 
+                            continue 
+                return False
+    return True
 
     
 
@@ -678,48 +745,80 @@ def enemies_on_board():
 # Main loop
 def main_loop():
     running = True
-    draw_board(player) 
+    
+    # start screen
     # Set the player's initial position at the bottom row middle column
-    game_board[player.row][player.col] = player
+    game_board[player.row][player.col].fill = player
+    #place obstacles
+
     # Place the enemy on the game board
     for enemy in enemies:
-        game_board[enemy.row][enemy.col] = enemy
-    draw_units()
+        game_board[enemy.row][enemy.col].fill = enemy  
+
+    spawner(obstacles)
+    
+    p = 0
+    for p in range(3):
+        clear = spawner_issue_checker(enemies)
+    
+        if clear:
+            break
+        else:        
+            spawner(obstacles)
+            
+    
+    buffer_screen(current_buffer, player)
     
 
     while running:     
-        
-        if player.status == "dead":
-            print("You're dead x_x")
-            print("Goodbye")
-            running = False
-        else:
-            check_status(player)
-            handle_events() 
-           
-            #handle_enemy_turn(enemies)
-                
-            player.status = "none"
-            player.disabled = None
-            player.actions_left = player.total_actions # New function to handle events
-            for enemy in enemies:
-                enemy.status = "none"
-                enemy.disabled = None
-                enemy.actions_left = enemy.total_actions
-                            
-            running = True
-
-            if not enemies_on_board():
-                print("Congratulations! You defeated all enemies.")
-                print("press esc to exit")
-                running = False
-        
-        
-    pygame.display.flip()
+       
             
-    pygame.display.flip() 
+            if player.status == "dead":
+                        print("You're dead x_x")
+                        print("Goodbye")
+                        running = False
+            elif enemies_on_board(): 
+                
+                check_status(player)
+                handle_events()
+                if player.actions_left == 0:
+                    player.actions_left = player.total_actions
+                    if player.status != "dead":
+                        player.status = "none"
+                        player.disabled = None
+                    for enemy in enemies:
+                        if enemy.status != "dead":    
+                            handle_enemy_turn(enemy)
+                            enemy.actions_left = enemy.total_actions
+                            continue
+                        else:
+                            continue  
+                    print("your turn")    
+                running = True
+            
+            else:
+                        print("Congratulations! You defeated all enemies.")
+                        print("press esc to exit")
+                        running = False
+                
+                    
+            
+         
+                   
+                
+                
+                
+                        
+            
 
+            
 
+            
+        
+        
+    
+
+#start screen function 
 main_loop()
     
 
@@ -728,4 +827,3 @@ main_loop()
 
 #Quit Pygame
 pygame.quit()
-sys.exit

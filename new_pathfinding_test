@@ -1,0 +1,74 @@
+import math
+inf = math.inf
+
+
+path_rev = []
+open_cells = []
+
+""" end cell start cell path cell pathrevlist path list"""
+
+
+def open_cell_check(grid_size, game_board):
+    open_cells.clear()
+    for row in range(grid_size-1):
+            for col in range(grid_size-1):
+                if game_board[row][col].fill is None:
+                    open_cells.append(game_board[row][col])
+                else:
+                    continue
+    return 
+
+def bruteforce_pathfinding(grid_size, game_board, start_cell, end_cell):
+    path_rev.append(end_cell)
+    i =1
+    for i in range(5e16):
+        open_cell_check(grid_size,game_board)
+        current_path_cells = [start_cell]
+        for row in range(grid_size-1):
+            for col in range(grid_size-1):
+                current_cell = game_board[row][col]
+                neighbor_cells = [game_board[row-1][col], game_board[row][col+1], game_board[row+1][col], game_board[row][col-1]]
+                     
+                if current_cell in current_path_cells:
+                    for neighbor in neighbor_cells:
+                        if neighbor is end_cell:
+                            end_cell.parent = current_cell
+                            print (f"path found in  {i} steps")
+                            return True
+                        elif neighbor in open_cells and neighbor != current_cell.parent:
+                            current_path_cells.append(neighbor)
+                            neighbor.parent = current_cell
+                        else:
+                            continue
+                    current_path_cells.remove(current_cell)
+
+        open_cells.clear()        
+        i +=1
+    
+    return False    
+
+def create_true_path(start_cell):
+    x=0
+    for x in range(inf):
+        path_cell = path_rev[x].parent
+        if path_cell == start_cell:
+            break
+        else:
+            path_rev.append(path_cell)
+    path = path_rev.reverse()
+    print (path)
+    return path
+
+def reset_cells(grid_size, game_board):
+    for row in range(grid_size-1):
+            for col in range(grid_size-1):
+                current_cell = game_board[row][col]
+                current_cell.parent = None
+    path_rev.clear()
+    open_cells.clear()
+    
+def final_pathfinding(grid_size, game_board, start_cell, end_cell):
+    bruteforce_pathfinding(grid_size, game_board, start_cell, end_cell)
+    path = create_true_path(start_cell)
+    reset_cells(grid_size, game_board)
+    return path
