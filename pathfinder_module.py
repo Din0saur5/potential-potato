@@ -1,5 +1,4 @@
-import math
-inf = math.inf
+
 
 
 
@@ -11,7 +10,7 @@ inf = math.inf
 def open_cell_check(grid_size, game_board):
     open_cells = []
     for row in range(13):
-        for col in range(13):
+        for col in range(grid_size):
             if game_board[row][col].fill is None:
                     open_cells.append(game_board[row][col])
             else:
