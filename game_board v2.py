@@ -87,8 +87,17 @@ def ability_effect(ability, user, target):
                     row = random.randint(0, grid_size - 2)
                     col = random.randint(0, grid_size - 1)
                     if open_cell(row,col):
-                        game_board[user.row][user.col].fill = None
-                        game_board[row][col].fill = user
+                        if user in enemies:
+                            i = pathfinder_module.bruteforce_pathfinding(grid_size,game_board,game_board[row][col],game_board[player.row][player.col])
+                            if i == False:
+                                i +=1
+                                print("\nsomething when wrong \nlet me try again")
+                            else:
+                                game_board[user.row][user.col].fill = None
+                                game_board[row][col].fill = user
+                        else:
+                            game_board[user.row][user.col].fill = None
+                            game_board[row][col].fill = user
                         break
                     else:
                         i +=1
@@ -724,9 +733,7 @@ def spawner_issue_checker(enemies):
         #path = pathfinder_module.bruteforce_pathfinding(grid_size,game_board,game_board[enemy.row][enemy.col], game_board[player.row][player.col])
         if path != None:
                 print("path found")
-                pathfinder_module.reset_cells(grid_size, game_board)
-        elif path == None:
-             spawner_issue_checker(enemies)
+                path.clear()
         else:
                 for row in range(grid_size-1):
                     for col in range(grid_size-1):

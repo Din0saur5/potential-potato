@@ -7,10 +7,10 @@
 """ end cell start cell path cell pathrevlist path list"""
 
 
-def open_cell_check(grid_size, game_board):
+def open_cell_check(game_board):
     open_cells = []
     for row in range(13):
-        for col in range(grid_size):
+        for col in range(13):
             if game_board[row][col].fill is None:
                     open_cells.append(game_board[row][col])
             else:
@@ -23,10 +23,10 @@ def bruteforce_pathfinding(grid_size, game_board, start_cell, end_cell):
     i =1
     current_path_cells = [start_cell]
     next_path_cells = []
-    open_cells= open_cell_check(grid_size,game_board)
+    open_cells= open_cell_check(game_board)
     open_cells.append(start_cell)
     for i in range(1,30):
-        open_cells= open_cell_check(grid_size,game_board)
+        open_cells= open_cell_check(game_board)
         open_cells.append(start_cell)
         next_path_cells.clear()
         for cell in open_cells:
@@ -41,7 +41,7 @@ def bruteforce_pathfinding(grid_size, game_board, start_cell, end_cell):
                         if neighbor is end_cell:
                             end_cell.parent = cell
                             print (f"path found in  {i} steps")
-                            return True
+                            return i
                         elif neighbor in open_cells and neighbor != cell.parent:
                             next_path_cells.append(neighbor)
                             print (f"neighbor {neighbor.location}")
@@ -80,10 +80,11 @@ def reset_cells(grid_size, game_board):
     
     
 def final_pathfinding(grid_size, game_board, start_cell, end_cell):
-    if bruteforce_pathfinding(grid_size, game_board, start_cell, end_cell):
+    if not bruteforce_pathfinding(grid_size, game_board, start_cell, end_cell):
+         print("no path")
+        
+    else:
         path = create_true_path(start_cell, end_cell)
         print(f"path {path}")
         reset_cells(grid_size, game_board)
-    else:
-         print("no path")
     return path
