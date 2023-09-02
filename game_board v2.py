@@ -4,6 +4,8 @@ import graphics_module
 import sys
 import time
 import pathfinder_module
+import npc_brain
+
 
 # Set colors (you can customize these)
 BLACK = (0, 0, 0)
@@ -105,8 +107,14 @@ def ability_effect(ability, user, target):
         elif ability.name == "drain":
                 calculate_attack_damage(ability,user,target)
                 user.current_hp +=7
+                if user.current_hp > user.max_hp:
+                    user.current_hp = user.max_hp
         elif ability.name == "fear":
                 target.status == "scared"
+        elif ability.name == "heal":
+                user.current_hp += (random.randint(4,13)+ 2*user.level)
+                if user.current_hp > user.max_hp:
+                    user.current_hp = user.max_hp
         else:
                  print("\nnot an ability")    
              
@@ -129,6 +137,9 @@ drain = Ability("drain", 4,"necrotic",12,"graphic",False,2)
 abilities.append(drain)
 fear = Ability("fear", 2, "pychic", 0, "graphic", False, 1)
 abilities.append(fear)
+heal = Ability("heal",0,0,"none","graphic",False,1)
+abilities.append(heal)
+
 #enemy dictionary
  
 wolf_dict = {
@@ -230,7 +241,7 @@ class Player:
         self.attack_points = 20
         self.armor_rating = 17
         self.attack_skill_modifier = 3
-        self.abilities = ["movement","sword","locked","locked","locked","locked","locked","locked","locked","locked","locked"]
+        self.abilities = ["movement","sword","locked","heal","locked","locked","locked","locked","locked","locked","locked"]
         self.resistance = "none"
         self.weakness = "none"
         self.status = "none"
@@ -252,9 +263,9 @@ class Cell:
         self.parent = None
         self.h_score()
 
-    def h_score(self):
-        row_score = abs(player.row - self.row)
-        col_score = abs(player.col - self.col)
+    def h_score(self, target):
+        row_score = abs(target.row - self.row)
+        col_score = abs(target.col - self.col)
         h_score = abs(row_score + col_score)
         return h_score
 
@@ -608,11 +619,6 @@ def calculate_attack_damage(ability, attacker, target):
              
         return
 
-# Function to print user-friendly prompts in the terminal
-def print_prompt(message):
-    print(f"\n>>> {message}")
- 
-
 # Functions to handle enemy's turn
 #path finder
 def calculate_path(enemy): #enemy, player
@@ -640,8 +646,8 @@ def calculate_path(enemy): #enemy, player
         
         for neighbor in neighbors:
             
-            neighbor_h_score = neighbor.h_score()
-            current_cell_h_score = current_cell.h_score()
+            neighbor_h_score = neighbor.h_score(player)
+            current_cell_h_score = current_cell.h_score(player)
             if neighbor_h_score <= current_cell_h_score:
                  paths.append(neighbor)
             else:
@@ -663,24 +669,25 @@ def calculate_path(enemy): #enemy, player
             return next_cell
             
 
-def determine_direction(node_row, node_col, enemy_row, enemy_col):
-     if node_row>enemy_row and node_col == enemy_col:
+def determine_direction(target_row, target_col, enemy_row, enemy_col):
+     if target_row>enemy_row and target_col == enemy_col:
           position = "back"
-     elif node_row<enemy_row and node_col == enemy_col:
+     elif target_row<enemy_row and target_col == enemy_col:
           position = "forward"
-     elif node_col>enemy_col and node_row == enemy_row:
+     elif target_col>enemy_col and target_row == enemy_row:
           position = "right"
-     elif node_col<enemy_col and node_row == enemy_row:
+     elif target_col<enemy_col and target_row == enemy_row:
           position = "left"
      
      return position
+"""
 def handle_enemy_turn(enemy):
     x=0 
     for x in range(enemy.total_actions+1):
         path = calculate_path(enemy)
         if path:
             print(f"next move {path.location}")
-            path_h_score = int(path.h_score())
+            path_h_score = int(path.h_score(player))
             print (f"next move score {path_h_score}")
             # Check if the enemy is within 1 node of the player
             if path.fill == player:
@@ -713,9 +720,63 @@ def handle_enemy_turn(enemy):
               game_board[row][col].parent is None
 
     print(f"{enemy.name}'s turn over")
-
-
-
+"""
+def handle_enemy_turn(enemy):
+    actionsleft = enemy.actions_left
+    tactic = npc_brain.tactics()
+    in_range_bool = npc_brain.in_range_check()
+    if not in_range_bool:
+        path = npc_brain.in_range_path(tactic)
+        for cell in path: 
+            if enemy.actions_left <=0:
+                return print("turn over")
+            else:
+                nextrow = cell.row
+                nextcol = cell.col
+                move = determine_direction(nextrow, nextcol, enemy.row, enemy.col)
+                enemy.position = move
+                buffer_screen(current_buffer,player)
+                move_direction(enemy,move)
+                buffer_screen(current_buffer,player)
+    
+      # game_board will use this as "next cell info" and run through the list for positioning and movement removing an action each time
+    # so run both tactics and in_range_path before the turn loop
+    if enemy.behavior == "aggressive":
+        for actionsleft in range(enemy.total_actions):
+            actions= npc_brain.behavior()
+            position = determine_direction(player.row, player.col, enemy.row, enemy.col)
+            enemy.position = position
+            buffer_screen(current_buffer,player)
+            for action in actions:
+                if actionsleft <=0:
+                    return print("turn over")
+                use_ability(current_buffer,enemy,action)
+                buffer_screen(current_buffer,player)
+        return print("turn over")
+    else:
+            actions = npc_brain.behavior()
+            position = determine_direction(player.row, player.col, enemy.row, enemy.col)
+            enemy.position = position
+            buffer_screen(current_buffer,player)
+            for action in actions:
+                if actionsleft <=0:
+                    return print("turn over")
+                use_ability(current_buffer,enemy,action)
+                buffer_screen(current_buffer,player)
+                
+            evasive_manuevers = npc_brain.evasive()
+            for move in evasive_manuevers:
+                if actionsleft <=0:
+                    return print("turn over")
+                nextrow = move.row
+                nextcol = move.col
+                position = determine_direction(nextrow, nextcol, enemy.row, enemy.col)
+                enemy.position = position
+                buffer_screen(current_buffer,player)
+                move_direction(enemy,position)
+                buffer_screen(current_buffer,player)
+            return print("turn over")
+                 
 def enemies_on_board():
     buffer_screen(current_buffer,player)
     
@@ -731,7 +792,7 @@ def spawner_issue_checker(enemies):
     for enemy in enemies:
         path = pathfinder_module.final_pathfinding(grid_size,game_board,game_board[enemy.row][enemy.col], game_board[player.row][player.col])
         #path = pathfinder_module.bruteforce_pathfinding(grid_size,game_board,game_board[enemy.row][enemy.col], game_board[player.row][player.col])
-        if path != None:
+        if path != False:
                 print("path found")
                 path.clear()
         else:

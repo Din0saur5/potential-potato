@@ -78,7 +78,9 @@ grass_floor2 = pygame.transform.scale(grass_floor2O,customsize)
 #abilities
 sword = pygame.image.load(r"C:\Users\danha\OneDrive\Desktop\programming\rpggame\potential-potato\placeholder graphics\sword.png")
 woosh = pygame.image.load(r"C:\Users\danha\OneDrive\Desktop\programming\rpggame\potential-potato\placeholder graphics\woosh.png")
-
+healring = pygame.image.load(r"C:\Users\danha\OneDrive\Desktop\programming\rpggame\potential-potato\placeholder graphics\healing.png")
+semetricheart = pygame.image.load(r"C:\Users\danha\OneDrive\Desktop\programming\rpggame\potential-potato\placeholder graphics\symetricheart.png")
+growingheart = pygame.image.load(r"C:\Users\danha\OneDrive\Desktop\programming\rpggame\potential-potato\placeholder graphics\growingheart.png")
 def draw_player_info(screen, name, level, currenthp, attk, ar, acc, actions, status, ability1, ability2, ability3, ability4, ability5, ability6, ability7, ability8, ability9, ability10): #add abilities later
     size = (275,560)   #screen.get_width())    
     location = (835,5)
@@ -257,7 +259,6 @@ def ability_graphic(screen, ability, entity, game_board, player, frame):
     #topleft topright bottomright bottomleft
     animation_frames = []
     #topleft topright bottomright bottomleft
-    locations = [(col*50+65,row*50+50), (col*50+80, row*50+60), (col*50+100, row*50+50), (col*50+120, row*50+80), (col*50+95, row*50+95), (col*50+80, row*50+130), (col*50+40, row*50+110), (col*50+50, row*50+80), (col*50+40,row*50+50)]
     if ability.name == "sword":
         graphic0 = sword
         animation_frames.append(graphic0)
@@ -282,66 +283,92 @@ def ability_graphic(screen, ability, entity, game_board, player, frame):
 
         graphic7 = pygame.transform.rotate(woosh,90)
         animation_frames.append(graphic7)
-        
+    elif ability.name == "heal":
+            animation_frames.append(healring)
+            graphic0 = pygame.transform.scale_by(growingheart,0.25)      
+            animation_frames.append(graphic0)
+            graphic1 = pygame.transform.scale_by(growingheart,0.5)
+            animation_frames.append(graphic1)
+            animation_frames.append(growingheart)
     else:
         return
-       
-    if entity.position == "forward":
-        if frame == 0:
-            screen.blit(animation_frames[0],locations[0])
-            pygame.display.flip()
-            time.sleep(.06)
-        elif frame == 1:       
-            screen.blit(animation_frames[1],locations[1] )
-            pygame.display.flip()
-            time.sleep(.05)
-        elif frame == 2:
-            screen.blit(animation_frames[2],locations[2])
-            pygame.display.flip()
-            time.sleep(.05)
+    if ability.reach >= 1:  
+        locations = [(col*50+65,row*50+50), (col*50+80, row*50+60), (col*50+100, row*50+50), (col*50+120, row*50+80), (col*50+95, row*50+95), (col*50+80, row*50+130), (col*50+40, row*50+110), (col*50+50, row*50+80), (col*50+40,row*50+50)]
+ 
+        if entity.position == "forward":
+            if frame == 0:
+                screen.blit(animation_frames[0],locations[0])
+                pygame.display.flip()
+                time.sleep(.06)
+            elif frame == 1:       
+                screen.blit(animation_frames[1],locations[1] )
+                pygame.display.flip()
+                time.sleep(.05)
+            elif frame == 2:
+                screen.blit(animation_frames[2],locations[2])
+                pygame.display.flip()
+                time.sleep(.05)
 
-    if entity.position == "right":
-        if frame == 0:
-            screen.blit(animation_frames[2],locations[2])
-            pygame.display.flip()
-            time.sleep(.06)
-        elif frame == 1:       
-            screen.blit(animation_frames[3],locations[3] )
-            pygame.display.flip()
-            time.sleep(.05)
-        elif frame == 2:
-            screen.blit(animation_frames[4],locations[4])
-            pygame.display.flip()
-            time.sleep(.05)
+        if entity.position == "right":
+            if frame == 0:
+                screen.blit(animation_frames[2],locations[2])
+                pygame.display.flip()
+                time.sleep(.06)
+            elif frame == 1:       
+                screen.blit(animation_frames[3],locations[3] )
+                pygame.display.flip()
+                time.sleep(.05)
+            elif frame == 2:
+                screen.blit(animation_frames[4],locations[4])
+                pygame.display.flip()
+                time.sleep(.05)
 
-    if entity.position == "back":
-        if frame == 0:
-            screen.blit(animation_frames[4],locations[4])
-            pygame.display.flip()
-            time.sleep(.06)
-        elif frame == 1:       
-            screen.blit(animation_frames[5],locations[5] )
-            pygame.display.flip()
-            time.sleep(.05)
-        elif frame == 2:
-            screen.blit(animation_frames[6],locations[6])
-            pygame.display.flip()
-            time.sleep(.05)
+        if entity.position == "back":
+            if frame == 0:
+                screen.blit(animation_frames[4],locations[4])
+                pygame.display.flip()
+                time.sleep(.06)
+            elif frame == 1:       
+                screen.blit(animation_frames[5],locations[5] )
+                pygame.display.flip()
+                time.sleep(.05)
+            elif frame == 2:
+                screen.blit(animation_frames[6],locations[6])
+                pygame.display.flip()
+                time.sleep(.05)
 
-    if entity.position == "left":
+        if entity.position == "left":
+            if frame == 0:
+                screen.blit(animation_frames[0],locations[8])
+                pygame.display.flip()
+                time.sleep(.06)
+            elif frame == 1:       
+                screen.blit(animation_frames[7],locations[7] )
+                pygame.display.flip()
+                time.sleep(.05)
+            elif frame == 2:
+                screen.blit(animation_frames[6],locations[6])
+                pygame.display.flip()
+                time.sleep(.05)
+        animation_frames.clear()  
+    elif ability.reach < 1:
+        locations = [(col*50+50,row*50+50), (col*50+75,row*50+70), (col*50+60, row*50+40), (col*50+50,row*50+25)]
         if frame == 0:
-            screen.blit(animation_frames[0],locations[8])
-            pygame.display.flip()
-            time.sleep(.06)
+                screen.blit(animation_frames[0],locations[0])
+                pygame.display.flip()
+                time.sleep(.08)
         elif frame == 1:       
-            screen.blit(animation_frames[7],locations[7] )
-            pygame.display.flip()
-            time.sleep(.05)
+                screen.blit(animation_frames[1],locations[1] )
+                pygame.display.flip()
+                time.sleep(.08)
         elif frame == 2:
-            screen.blit(animation_frames[6],locations[6])
-            pygame.display.flip()
-            time.sleep(.05)
-    animation_frames.clear()  
+                screen.blit(animation_frames[2],locations[2])
+                pygame.display.flip()
+                time.sleep(.08)
+        elif frame == 3:
+                screen.blit(animation_frames[3],locations[3])
+                pygame.display.flip()
+                time.sleep(.08)
     return
 
 #def ability_graphic2

@@ -60,7 +60,7 @@ def bruteforce_pathfinding(grid_size, game_board, start_cell, end_cell):
 def create_true_path(start_cell, end_cell):
     print("start create true path")
     cell = end_cell
-    path = []
+    path = [end_cell]
     for _ in range(100):  
         if cell.parent != start_cell:
             path.append(cell)
@@ -81,8 +81,8 @@ def reset_cells(grid_size, game_board):
     
 def final_pathfinding(grid_size, game_board, start_cell, end_cell):
     if not bruteforce_pathfinding(grid_size, game_board, start_cell, end_cell):
-         print("no path")
-        
+        print("no path")
+        return False
     else:
         path = create_true_path(start_cell, end_cell)
         print(f"path {path}")
