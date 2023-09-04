@@ -155,7 +155,9 @@ wolf_dict = {
     "attack_skill_modifier": 2,
     "total_actions": 10,
     "actions_left": 10,
-    "abilities": ["movement", "bite"]
+    "abilities": ["movement", "bite", "locked", "locked", "locked", "locked"],
+    "tactics": [1,0,0,0],
+    "behavior": "aggressive"
     
 
     
@@ -163,7 +165,7 @@ wolf_dict = {
 
 enemies = []
 class Enemy:
-    def __init__(self, name, level, graphic, found, resistance, weakness, max_hp, attack_points, armor_rating, attack_skill_modifier, total_actions, actions_left, abilities):
+    def __init__(self, name, level, graphic, found, resistance, weakness, max_hp, attack_points, armor_rating, attack_skill_modifier, total_actions, actions_left, abilities,tactics, behavior):
         self.name = name
         self.level = level
         self.graphic = graphic
@@ -183,8 +185,8 @@ class Enemy:
         self.total_actions = total_actions
         self.actions_left = actions_left
         self.abilities = abilities
-    
-
+        self.tactics = tactics
+        self.behavior = behavior
 
 
 
@@ -261,13 +263,10 @@ class Cell:
         self.col = col
         self.fill = None  # You can set this to an entity object if the cell is occupied
         self.parent = None
-        self.h_score()
+        self.h_score = None
+        
 
-    def h_score(self, target):
-        row_score = abs(target.row - self.row)
-        col_score = abs(target.col - self.col)
-        h_score = abs(row_score + col_score)
-        return h_score
+
 
 # Define the game board as a 2D array
 # Define the game board as a grid of Cell objects
@@ -620,7 +619,8 @@ def calculate_attack_damage(ability, attacker, target):
         return
 
 # Functions to handle enemy's turn
-#path finder
+#path finder 
+"""
 def calculate_path(enemy): #enemy, player
         current_cell = game_board[enemy.row][enemy.col]
         neighborF = game_board[enemy.row-1][enemy.col] 
@@ -668,7 +668,7 @@ def calculate_path(enemy): #enemy, player
             next_cell.parent = current_cell
             return next_cell
             
-
+"""
 def determine_direction(target_row, target_col, enemy_row, enemy_col):
      if target_row>enemy_row and target_col == enemy_col:
           position = "back"
@@ -738,7 +738,9 @@ def handle_enemy_turn(enemy):
                 buffer_screen(current_buffer,player)
                 move_direction(enemy,move)
                 buffer_screen(current_buffer,player)
-    
+    if tactic == "long range" or tactic == "midrange":
+        h_score()
+    #finish back up manveuvor
       # game_board will use this as "next cell info" and run through the list for positioning and movement removing an action each time
     # so run both tactics and in_range_path before the turn loop
     if enemy.behavior == "aggressive":
@@ -765,17 +767,30 @@ def handle_enemy_turn(enemy):
                 buffer_screen(current_buffer,player)
                 
             evasive_manuevers = npc_brain.evasive()
-            for move in evasive_manuevers:
-                if actionsleft <=0:
+            if evasive_manuevers != False:
+                for move in evasive_manuevers:
+                    if actionsleft <=0:
+                        return print("turn over")
+                    nextrow = move.row
+                    nextcol = move.col
+                    position = determine_direction(nextrow, nextcol, enemy.row, enemy.col)
+                    enemy.position = position
+                    buffer_screen(current_buffer,player)
+                    move_direction(enemy,position)
+                    buffer_screen(current_buffer,player)
+                return print("turn over")
+            else: 
+                for actionsleft in range(enemy.total_actions):
+                    actions= npc_brain.behavior()
+                    position = determine_direction(player.row, player.col, enemy.row, enemy.col)
+                    enemy.position = position
+                    buffer_screen(current_buffer,player)
+                    for action in actions:
+                        if actionsleft <=0:
+                            return print("turn over")
+                        use_ability(current_buffer,enemy,action)
+                        buffer_screen(current_buffer,player)
                     return print("turn over")
-                nextrow = move.row
-                nextcol = move.col
-                position = determine_direction(nextrow, nextcol, enemy.row, enemy.col)
-                enemy.position = position
-                buffer_screen(current_buffer,player)
-                move_direction(enemy,position)
-                buffer_screen(current_buffer,player)
-            return print("turn over")
                  
 def enemies_on_board():
     buffer_screen(current_buffer,player)

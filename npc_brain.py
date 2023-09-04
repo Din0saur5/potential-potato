@@ -79,7 +79,7 @@ tactics function (enemy) -> random weighted choice based on assigned tactics
 in range algorithm (pathfinder, player(target), enemy, )
 behavior algorithm(actions left, gameboard, enemy, pathfinder, enemy)
 
-items to add to enemy class: preferred_tactic, tactics, behavior, 
+items to add to enemy class: tactics, behavior, 
 
 """
 import pygame
@@ -201,7 +201,12 @@ def in_range_path(game_board, npc, target, grid_size):
     move_path = possible_paths_sorted[0]
 
     return move_path
-   
+
+def h_score(self, target):
+        row_score = abs(target.row - self.row)
+        col_score = abs(target.col - self.col)
+        h_score = abs(row_score + col_score)
+        return h_score   
 
 def behavior(end_cell, tactic, npc, target):
     #first things first determine the tactic being used:
@@ -252,19 +257,41 @@ def behavior(end_cell, tactic, npc, target):
                 
             else:
                 ability_actions.append(attack)
-            if npc.current_hp < (npc.max_hp *.6):
+            if npc.current_hp < (npc.max_hp *.6) and evasive_ability != "locked" :
                 ability_actions.append(evasive_ability)
             
     return ability_actions
        
 
 
-def evasive(tactic, npc):
+def evasive(grid_size, npc, player, game_board, obstacles):
     # for defensive actions finds nearest obstacle by hscore to npc (search board for all obstacles and sort by hscore choose lowest)
     # search neighbors for opening and find one with highest hscore from player
     # now we have the closest "hiding spot" cell 
     #create path to that cell
-    return 
+    obstacle_cells =[]
+    for row in range(grid_size-1):
+        for col in range(grid_size-1):
+            cell = game_board[row][col]
+            if cell.fill in obstacles:
+                obstacle_cells.append(cell)
+                cell.h_score = h_score(cell,npc)
+   
+    closest_cells = sorted(obstacle_cells)
+    closest_obstacle = closest_cells[0]
+    obstacle_neighbors = [game_board[closest_obstacle.row-1][closest_obstacle.col],game_board[closest_obstacle.row+1][closest_obstacle.col],game_board[closest_obstacle.row][closest_obstacle.col+1],game_board[closest_obstacle.row][closest_obstacle.col+1]]
+    furthest_cell_unsorted = []
+    for neighbors in obstacle_neighbors:
+        if neighbors.fill == None:
+            neighbors.h_score = h_score(neighbors,player)
+            furthest_cell_unsorted.append(neighbors)
+    furthest_cell = sorted(furthest_cell_unsorted,reverse=True)       
+    hiding_spot = furthest_cell[0] 
+    path = pathfinder_module.final_pathfinding(grid_size,game_board,game_board[npc.row][npc.col],hiding_spot)
+    if path != False:
+        return path
+    else:
+        return False
     
 
     
