@@ -207,7 +207,23 @@ def h_score(self, target):
         col_score = abs(target.col - self.col)
         h_score = abs(row_score + col_score)
         return h_score   
-
+def ranger_move(enemy, target, game_board): #foreward back left right
+    neighbors = [game_board[target.row-1][target.col],game_board[target.row+1][target.col],game_board[target.row][target.col-1],game_board[target.row][target.col+1]]
+    enemycell = game_board[enemy.row][enemy.col]
+    
+    if game_board[enemy.row][enemy.col] in neighbors:
+        if enemycell == neighbors[0]:
+            movement = "forward"
+        elif enemycell == neighbors[1]:
+            movement = "back"
+        elif enemycell == neighbors[2]:
+            movement = "left"
+        elif enemycell == neighbors[3]:
+            movement = "right"
+        moves = [movement, movement, movement]
+        return moves
+    else:
+        return False
 def behavior(end_cell, tactic, npc, target):
     #first things first determine the tactic being used:
     # determine if the npc is aggressive or defensive by .behavior

@@ -723,7 +723,7 @@ def handle_enemy_turn(enemy):
 """
 def handle_enemy_turn(enemy):
     actionsleft = enemy.actions_left
-    tactic = npc_brain.tactics()
+    tactic = npc_brain.tactics(enemy)
     in_range_bool = npc_brain.in_range_check()
     if not in_range_bool:
         path = npc_brain.in_range_path(tactic)
@@ -738,8 +738,17 @@ def handle_enemy_turn(enemy):
                 buffer_screen(current_buffer,player)
                 move_direction(enemy,move)
                 buffer_screen(current_buffer,player)
-    if tactic == "long range" or tactic == "midrange":
-        h_score()
+    if tactic == "midrange" or tactic == "long range":
+        movesR= npc_brain.ranger_move()
+        if movesR != False:
+            for moveR in movesR: 
+                enemy.position = moveR
+                buffer_screen(current_buffer,player)
+                move_direction(enemy,moveR)
+                buffer_screen(current_buffer,player)
+        
+    # check h score of npc to player if 
+        #h_score()
     #finish back up manveuvor
       # game_board will use this as "next cell info" and run through the list for positioning and movement removing an action each time
     # so run both tactics and in_range_path before the turn loop
