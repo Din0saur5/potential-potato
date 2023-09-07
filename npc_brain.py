@@ -91,10 +91,28 @@ def tactics(tactics):
     #chooses what kind of movet the entity will make
     tactics_choices = ["melee", "long range", "midrange", "special"]
     tactic = random.choices(tactics_choices,tactics)
+    print(f"tactic {tactic}")
     return tactic
 
-def in_range_check(npc, target, game_board, tactic,grid_size):
+def in_range_check(npc, target, game_board, tactic, grid_size, abilities):
     #check if in range of target with specific tactic
+    if tactic == ['melee']:
+        attack_name= npc.abilities[1]
+    elif tactic == ['long range']:
+        attack_name= npc.abilities[3]
+    elif tactic ==['midrange']:
+        attack_name= npc.abilities[4]
+    elif tactic == ['special']:
+        attack_name= npc.abilities[5]
+    else:
+        print("tactic not found")
+    print(f"attack {attack_name}")
+    for ability in abilities:
+        if attack_name == ability.name:
+            attack = ability
+            print(f"attack reach {attack.reach}")
+        else:
+            continue
     
     #check cells in range vertical
     col_cells = []
@@ -133,23 +151,24 @@ def in_range_check(npc, target, game_board, tactic,grid_size):
             left_inrange.append(cell)
         else:
             break
-    if tactic == "melee":
-        attack= npc.abilities[1]
-    elif tactic == "long range":
-        attack= npc.abilities[3]
-    elif tactic == " midrange":
-        attack= npc.abilities[4]
-    elif tactic == "special":
-        attack= npc.abilities[5]
     
     cells_inrange = []
-    """
-    possible_cells_in_range = [forward_inrange, back_inrange, right_inrange, left_inrange]
-    alternate method:
-    for cell in possible_cells_inrange
-        hscore= cell.hscore(target)
-        if hscore <=attack.reach
-            cell_inrange.append(cell)
+    possible_cells_inrange = []
+    possible_cells_inrange.extend(forward_inrange)
+    possible_cells_inrange.extend(back_inrange)
+    possible_cells_inrange.extend(right_inrange)
+    possible_cells_inrange.extend(left_inrange)
+    #alternate method:
+    for cell in possible_cells_inrange:
+        hscore= h_score(cell, target)
+        print(f"hscore {hscore}")
+        if hscore <=attack.reach:
+            cells_inrange.append(cell)
+    npccell = game_board[npc.row][npc.col]
+    if npccell in cells_inrange:
+        return True
+    else:
+        return cells_inrange
     """
     if len(forward_inrange)> attack.reach:
         x=0
@@ -184,12 +203,12 @@ def in_range_check(npc, target, game_board, tactic,grid_size):
     else:
         cells_inrange.extend(left_inrange)    
 
-    targetcell = game_board[target.row][target.col]
-    if targetcell in cells_inrange:
+    npccell = game_board[npc.row][npc.col]
+    if npccell in cells_inrange:
         return True
     else:
         return cells_inrange
-    
+    """
 def in_range_path(game_board, npc, target, grid_size):
     # if not in range determines best end cell in attack range for tactic and sets path to that cell
     cells_inrange = in_range_check(npc, target, game_board)
@@ -224,7 +243,7 @@ def ranger_move(enemy, target, game_board): #foreward back left right
         return moves
     else:
         return False
-def behavior(end_cell, tactic, npc, target):
+def behavior(tactic, npc):
     #first things first determine the tactic being used:
     # determine if the npc is aggressive or defensive by .behavior
     

@@ -619,7 +619,7 @@ def calculate_attack_damage(ability, attacker, target):
         return
 
 # Functions to handle enemy's turn
-#path finder 
+#path finder old
 """
 def calculate_path(enemy): #enemy, player
         current_cell = game_board[enemy.row][enemy.col]
@@ -723,10 +723,10 @@ def handle_enemy_turn(enemy):
 """
 def handle_enemy_turn(enemy):
     actionsleft = enemy.actions_left
-    tactic = npc_brain.tactics(enemy)
-    in_range_bool = npc_brain.in_range_check()
+    tactic = npc_brain.tactics(enemy.tactics)
+    in_range_bool = npc_brain.in_range_check(enemy, player, game_board, tactic, grid_size, abilities)
     if not in_range_bool:
-        path = npc_brain.in_range_path(tactic)
+        path = npc_brain.in_range_path(game_board, enemy, player, grid_size)
         for cell in path: 
             if enemy.actions_left <=0:
                 return print("turn over")
@@ -738,8 +738,8 @@ def handle_enemy_turn(enemy):
                 buffer_screen(current_buffer,player)
                 move_direction(enemy,move)
                 buffer_screen(current_buffer,player)
-    if tactic == "midrange" or tactic == "long range":
-        movesR= npc_brain.ranger_move()
+    if tactic == "midrange" or tactic == "long range": # only occurs when the enemy is in a neighboring cell
+        movesR= npc_brain.ranger_move(enemy, player, game_board)
         if movesR != False:
             for moveR in movesR: 
                 enemy.position = moveR
@@ -754,7 +754,7 @@ def handle_enemy_turn(enemy):
     # so run both tactics and in_range_path before the turn loop
     if enemy.behavior == "aggressive":
         for actionsleft in range(enemy.total_actions):
-            actions= npc_brain.behavior()
+            actions= npc_brain.behavior(tactic, enemy)
             position = determine_direction(player.row, player.col, enemy.row, enemy.col)
             enemy.position = position
             buffer_screen(current_buffer,player)
@@ -765,7 +765,7 @@ def handle_enemy_turn(enemy):
                 buffer_screen(current_buffer,player)
         return print("turn over")
     else:
-            actions = npc_brain.behavior()
+            actions = npc_brain.behavior(tactic, enemy)
             position = determine_direction(player.row, player.col, enemy.row, enemy.col)
             enemy.position = position
             buffer_screen(current_buffer,player)
@@ -775,7 +775,7 @@ def handle_enemy_turn(enemy):
                 use_ability(current_buffer,enemy,action)
                 buffer_screen(current_buffer,player)
                 
-            evasive_manuevers = npc_brain.evasive()
+            evasive_manuevers = npc_brain.evasive(grid_size, enemy, player, game_board, obstacles)
             if evasive_manuevers != False:
                 for move in evasive_manuevers:
                     if actionsleft <=0:
@@ -790,7 +790,7 @@ def handle_enemy_turn(enemy):
                 return print("turn over")
             else: 
                 for actionsleft in range(enemy.total_actions):
-                    actions= npc_brain.behavior()
+                    actions= npc_brain.behavior(tactic, enemy)
                     position = determine_direction(player.row, player.col, enemy.row, enemy.col)
                     enemy.position = position
                     buffer_screen(current_buffer,player)
